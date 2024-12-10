@@ -1,0 +1,53 @@
+## traefik.yml
+
+# Docker configuration backend
+providers:
+  swarm:
+    endpoint: "unix:///var/run/docker.sock"
+    network: public
+    exposedByDefault: false
+
+entryPoints:
+  http:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: https
+          scheme: https
+  https:
+    address: ":443"
+    transport:
+      respondingTimeouts:
+        writeTimeout: 60s
+        readTimeout: 60s
+
+certificatesResolvers:
+  le:
+    # Enable ACME (Let's Encrypt): automatic SSL.
+    acme:
+      # Email address used for registration.
+      #
+      # Required
+      #
+      email: "admin@tnfy.link"
+
+      # File or key used for certificates storage.
+      #
+      # Required
+      #
+      storage: "/letsencrypt/acme.json"
+
+      # Use a TLS-ALPN-01 ACME challenge.
+      #
+      # Optional (but recommended)
+      #
+      tlsChallenge: {}
+
+# API and dashboard configuration
+api:
+  insecure: false
+  dashboard: true
+accessLog: {}
+log:
+  level: WARN
