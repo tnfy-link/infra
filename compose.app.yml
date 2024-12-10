@@ -1,0 +1,37 @@
+services:
+  backend:
+    image: ghcr.io/tnfy-link/backend:latest
+    environment:
+      - HTTP__ADDRESS=:3000
+      - STORAGE__URL=redis://redis:6379/0
+      - LINKS__HOSTNAME=https://${BACKEND_HOST}
+      - LINKS__TTL=168h
+    networks:
+      - internal
+      - public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.backend.rule=Host(`${BACKEND_HOST}`)"
+        - "traefik.http.routers.backend.entrypoints=https"
+        - "traefik.http.routers.backend.tls.certresolver=le"
+        - "traefik.http.services.backend.loadbalancer.server.port=3000"
+      replicas: 1
+      resources:
+        reservations:
+          memory: 32M
+        limits:
+          memory: 128M
+      update_config:
+        order: start-first
+        monitor: 5s
+        failure_action: rollback
+      rollback_config:
+        order: start-first
+        monitor: 5s
+   
+networks:
+  internal:
+    external: true
+  public:
+    external: true
