@@ -22,13 +22,16 @@ services:
           memory: 32M
         limits:
           memory: 128M
+      restart_policy:
+        condition: on-failure
+        window: 15s
       update_config:
         order: start-first
-        monitor: 5s
+        monitor: 15s
         failure_action: rollback
       rollback_config:
         order: start-first
-        monitor: 5s
+        monitor: 15s
    
 networks:
   internal:
