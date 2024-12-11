@@ -3,6 +3,8 @@ services:
     image: ghcr.io/tnfy-link/backend:latest
     environment:
       - HTTP__ADDRESS=:3000
+      - HTTP__PROXIES=${HTTP__PROXIES}
+      - HTTP__PROXY_HEADER=${HTTP__PROXY_HEADER}
       - STORAGE__URL=redis://redis:6379/0
       - LINKS__HOSTNAME=https://${BACKEND_HOST}
       - LINKS__TTL=168h
