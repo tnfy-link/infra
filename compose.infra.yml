@@ -68,6 +68,7 @@ volumes:
     
 configs:
   traefik-yml:
+    name: traefik-yml-${CONFIG_VERSION:-0}
     file: traefik/traefik.yml
 
 networks:
