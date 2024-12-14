@@ -17,6 +17,13 @@ services:
         - "traefik.http.routers.backend.rule=Host(`${BACKEND_HOST}`)"
         - "traefik.http.routers.backend.entrypoints=https"
         - "traefik.http.routers.backend.tls.certresolver=le"
+
+        - "traefik.http.middlewares.backend-api-addprefix.addprefix.prefix=/api"
+        - "traefik.http.routers.backend-api.rule=Host(`api.${BACKEND_HOST}`)"
+        - "traefik.http.routers.backend-api.entrypoints=https"
+        - "traefik.http.routers.backend-api.tls.certresolver=le"
+        - "traefik.http.routers.backend-api.middlewares=backend-api-addprefix"
+
         - "traefik.http.services.backend.loadbalancer.server.port=3000"
       replicas: 1
       resources:
