@@ -18,11 +18,19 @@ services:
         - "traefik.http.routers.backend.entrypoints=https"
         - "traefik.http.routers.backend.tls.certresolver=le"
 
+        # add prefix to api requests
         - "traefik.http.middlewares.backend-api-addprefix.addprefix.prefix=/api"
+
+        # cors
+        - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowmethods=GET,POST,HEAD,PUT,DELETE,PATCH"
+        - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowheaders=Authorization"
+        - "traefik.http.middlewares.backend-cors.headers.accesscontrolalloworiginlist=https://${BACKEND_HOST}"
+        - "traefik.http.middlewares.backend-cors.headers.addvaryheader=true"
+
         - "traefik.http.routers.backend-api.rule=Host(`api.${BACKEND_HOST}`)"
         - "traefik.http.routers.backend-api.entrypoints=https"
         - "traefik.http.routers.backend-api.tls.certresolver=le"
-        - "traefik.http.routers.backend-api.middlewares=backend-api-addprefix"
+        - "traefik.http.routers.backend-api.middlewares=backend-api-addprefix,backend-cors"
 
         - "traefik.http.services.backend.loadbalancer.server.port=3000"
       replicas: 1
