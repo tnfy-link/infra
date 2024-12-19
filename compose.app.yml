@@ -3,10 +3,10 @@ services:
     image: ghcr.io/tnfy-link/backend:latest
     environment:
       - HTTP__ADDRESS=:3000
-      - HTTP__PROXIES=${HTTP__PROXIES}
       - HTTP__PROXY_HEADER=${HTTP__PROXY_HEADER}
+      - HTTP__PROXIES=${HTTP__PROXIES}
       - STORAGE__URL=redis://redis:6379/0
-      - LINKS__HOSTNAME=https://${BACKEND_HOST}
+      - LINKS__HOSTNAME=https://${FRONTEND_HOST}
       - LINKS__TTL=168h
     networks:
       - internal
@@ -14,23 +14,20 @@ services:
     deploy:
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.backend.rule=Host(`${BACKEND_HOST}`)"
-        - "traefik.http.routers.backend.entrypoints=https"
-        - "traefik.http.routers.backend.tls.certresolver=le"
 
         # add prefix to api requests
-        - "traefik.http.middlewares.backend-api-addprefix.addprefix.prefix=/api"
+        - "traefik.http.middlewares.backend-addprefix.addprefix.prefix=/api"
 
         # cors
         - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowmethods=GET,POST,HEAD,PUT,DELETE,PATCH"
         - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowheaders=Authorization"
-        - "traefik.http.middlewares.backend-cors.headers.accesscontrolalloworiginlist=https://${BACKEND_HOST}"
+        - "traefik.http.middlewares.backend-cors.headers.accesscontrolalloworiginlist=https://${FRONTEND_HOST}"
         - "traefik.http.middlewares.backend-cors.headers.addvaryheader=true"
 
-        - "traefik.http.routers.backend-api.rule=Host(`api.${BACKEND_HOST}`)"
-        - "traefik.http.routers.backend-api.entrypoints=https"
-        - "traefik.http.routers.backend-api.tls.certresolver=le"
-        - "traefik.http.routers.backend-api.middlewares=backend-api-addprefix,backend-cors"
+        - "traefik.http.routers.backend.rule=Host(`${BACKEND_HOST}`)"
+        - "traefik.http.routers.backend.entrypoints=https"
+        - "traefik.http.routers.backend.tls.certresolver=le"
+        - "traefik.http.routers.backend.middlewares=backend-addprefix,backend-cors"
 
         - "traefik.http.services.backend.loadbalancer.server.port=3000"
       replicas: 1
@@ -38,7 +35,44 @@ services:
         reservations:
           memory: 32M
         limits:
-          memory: 128M
+          memory: 64M
+      restart_policy:
+        condition: on-failure
+        window: 15s
+      update_config:
+        order: start-first
+        monitor: 15s
+        failure_action: rollback
+      rollback_config:
+        order: start-first
+        monitor: 15s
+
+  frontend:
+    image: ghcr.io/tnfy-link/frontend:latest
+    environment:
+      - HTTP__ADDRESS=:3000
+      - HTTP__PROXY_HEADER=${HTTP__PROXY_HEADER}
+      - HTTP__PROXIES=${HTTP__PROXIES}
+      - QUEUE__URL=redis://redis:6379/0
+      - LINKS__URL=https://${BACKEND_HOST}/
+      - LINKS__TIMEOUT=${BACKEND_TIMEOUT:-300ms}
+    networks:
+      - internal
+      - public
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`${FRONTEND_HOST}`)"
+        - "traefik.http.routers.frontend.entrypoints=https"
+        - "traefik.http.routers.frontend.tls.certresolver=le"
+
+        - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+      replicas: 1
+      resources:
+        reservations:
+          memory: 32M
+        limits:
+          memory: 64M
       restart_policy:
         condition: on-failure
         window: 15s
