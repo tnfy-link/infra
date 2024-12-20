@@ -20,7 +20,7 @@ services:
 
         # cors
         - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowmethods=GET,POST,HEAD,PUT,DELETE,PATCH"
-        # - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowheaders=Authorization,Accept,Accept-Language,Content-Language,Content-Type,Range"
+        - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowheaders=Authorization,Accept,Accept-Language,Content-Language,Content-Type,Range"
         - "traefik.http.middlewares.backend-cors.headers.accesscontrolallowcredentials=true"
         - "traefik.http.middlewares.backend-cors.headers.accesscontrolalloworiginlist=https://${FRONTEND_HOST}"
         - "traefik.http.middlewares.backend-cors.headers.addvaryheader=true"
