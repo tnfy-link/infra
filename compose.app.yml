@@ -60,7 +60,7 @@ services:
       - HTTP__PROXY_HEADER=${HTTP__PROXY_HEADER}
       - HTTP__PROXIES=${HTTP__PROXIES}
       - QUEUE__URL=redis://redis:6379/0
-      - LINKS__URL=http://backend:3000/
+      - LINKS__URL=http://backend:3000/api/
       - LINKS__TIMEOUT=${BACKEND_TIMEOUT:-300ms}
     networks:
       - internal
