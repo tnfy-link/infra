@@ -6,6 +6,8 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     network: public
     exposedByDefault: false
+  file:
+    filename: /etc/traefik/dynamic.yml
 
 entryPoints:
   http:
