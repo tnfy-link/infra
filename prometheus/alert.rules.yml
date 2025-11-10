@@ -1,0 +1,58 @@
+groups:
+  - name: example-alerts
+    rules:
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage on {{ $labels.instance }} has been above 80% for more than 2 minutes."
+
+  - name: backend-alerts
+    rules:
+      - alert: BackendHighLinkCreationErrorRate
+        expr: rate(links_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High link creation error rate on {{ $labels.instance }}"
+          description: "The rate of link creation errors on {{ $labels.instance }} is {{ $value | humanizePercentage }}."
+
+      - alert: BackendIncreasedLatency
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, instance)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Increased latency on {{ $labels.instance }}"
+          description: "The 99th percentile latency on {{ $labels.instance }} is {{ $value }}s."
+
+      - alert: BackendHighHTTPRequestRate
+        expr: sum(rate(http_requests_total[5m])) by (status_code) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HTTP request rate for status {{ $labels.status_code }}"
+          description: "HTTP request rate for status {{ $labels.status_code }} is {{ $value | humanize }}req/s."
+
+      - alert: BackendHighLinkRedirects
+        expr: rate(stats_redirects_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High link redirect rate on {{ $labels.instance }}"
+          description: "The redirect rate on {{ $labels.instance }} is {{ $value | humanize }}req/s."
