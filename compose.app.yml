@@ -30,12 +30,16 @@ services:
         - "traefik.http.routers.backend.entrypoints=https"
         - "traefik.http.routers.backend.tls=true"
         - "traefik.http.routers.backend.middlewares=backend-addprefix,backend-cors"
-        
+
         - "traefik.http.routers.backend-api.rule=Host(`${BACKEND_HOST}`) && PathPrefix(`/api`)"
         - "traefik.http.routers.backend-api.entrypoints=https"
         - "traefik.http.routers.backend-api.tls=true"
 
         - "traefik.http.services.backend.loadbalancer.server.port=3000"
+
+        - "prometheus.io/scrape=true"
+        - "prometheus.io/port=3000"
+        - "prometheus.io/job=backend"
       replicas: 1
       resources:
         reservations:
@@ -89,7 +93,7 @@ services:
       rollback_config:
         order: start-first
         monitor: 15s
-   
+
 networks:
   internal:
     external: true
