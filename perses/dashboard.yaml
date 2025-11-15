@@ -1,0 +1,126 @@
+- kind: "GlobalDatasource"
+  metadata:
+    name: Prometheus
+  spec:
+    default: true
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        proxy:
+          kind: "HTTPProxy"
+          spec:
+            url: "http://prometheus:9090"
+            allowedEndpoints:
+              - endpointPattern: "/api/v1/labels"
+                method: "POST"
+              - endpointPattern: "/api/v1/series"
+                method: "POST"
+              - endpointPattern: "/api/v1/metadata"
+                method: "GET"
+              - endpointPattern: "/api/v1/query"
+                method: "POST"
+              - endpointPattern: "/api/v1/query_range"
+                method: "POST"
+              - endpointPattern: "/api/v1/label/([a-zA-Z0-9_-]+)/values"
+                method: "GET"
+
+- kind: "Project"
+  metadata:
+    name: tnfy.link
+
+- kind: Dashboard
+  metadata:
+    name: tnfy-link
+    project: tnfy.link
+  spec:
+    display:
+      name: tnfy.link
+    panels:
+      "0_0":
+        kind: Panel
+        spec:
+          display:
+            name: Active Goroutines
+            description: Number of active goroutines in the application
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    minStep: ""
+                    query: go_goroutines
+                    seriesNameFormat: "{{job}}"
+      "0_1":
+        kind: Panel
+        spec:
+          display:
+            name: Memory Usage (Allocated)
+            description: Memory allocated by the application in bytes
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    minStep: ""
+                    query: go_memstats_alloc_bytes
+                    seriesNameFormat: "{{job}}"
+      "0_2":
+        kind: Panel
+        spec:
+          display:
+            name: CPU Usage
+            description: CPU usage in seconds
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              yAxis:
+                format:
+                  unit: percent-decimal
+                label: ""
+                show: true
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    minStep: ""
+                    query: rate(process_cpu_seconds_total[$__rate_interval])
+                    seriesNameFormat: "{{job}}"
+    layouts:
+      - kind: Grid
+        spec:
+          display:
+            title: General Metrics
+            collapse:
+              open: true
+          items:
+            - x: 0
+              "y": 0
+              width: 8
+              height: 8
+              content:
+                $ref: "#/spec/panels/0_0"
+            - x: 8
+              "y": 0
+              width: 8
+              height: 8
+              content:
+                $ref: "#/spec/panels/0_1"
+            - x: 16
+              "y": 0
+              width: 8
+              height: 8
+              content:
+                $ref: "#/spec/panels/0_2"
+    variables: []
+    duration: 1d
+    refreshInterval: 30s
