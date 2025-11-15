@@ -92,37 +92,49 @@ services:
   #       - "prometheus.io/port=8080"
   #       - "prometheus.io/job=cadvisor"
 
-  # grafana:
-  #   image: grafana/grafana
-  #   depends_on:
-  #     - prometheus
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     # - ./grafana/provisioning/:/etc/grafana/provisioning/
-  #   # env_file:
-  #   # - ./grafana/config.monitoring
-  #   networks:
-  #     - internal
-  #     - public
-  #   user: "472"
-  #   deploy:
-  #     placement:
-  #       constraints:
-  #         - node.role==manager
-  #     labels:
-  #       - "traefik.enable=true"
-  #       - "traefik.docker.network=public"
-  #       - "traefik.http.routers.grafana.rule=Host(`mon.${ROOT_DOMAIN}`)"
-  #       - "traefik.http.routers.grafana.entrypoints=https"
-  #       - "traefik.http.routers.grafana.tls.certresolver=le"
-  #       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
-  #     restart_policy:
-  #       condition: any
+  perses:
+    image: persesdev/perses:v0.52.0
+    networks:
+      - public
+      - internal
+    environment:
+      - PERSES_PROVISIONING_INTERVAL=24h
+      - PERSES_PROVISIONING_FOLDERS_0=/provisioning
+    configs:
+      - source: perses.dashboard.yaml
+        target: /provisioning/dashboard.yaml
+    volumes:
+      - perses_data:/data
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.swarm.network=public"
+
+        # Router
+        - "traefik.http.routers.perses.rule=Host(`mon.${ROOT_DOMAIN}`)"
+        - "traefik.http.routers.perses.entrypoints=https"
+        - "traefik.http.routers.perses.tls.certresolver=le"
+
+        # Basic Auth Middleware
+        - "traefik.http.middlewares.perses-auth.basicauth.users=${PERSES__BASIC_AUTH_USERS}"
+        - "traefik.http.routers.perses.middlewares=perses-auth"
+
+        # Service
+        - "traefik.http.services.perses.loadbalancer.server.port=8080"
 
 volumes:
   prometheus_data: {}
   alertmanager_data: {}
-  # grafana_data: {}
+  perses_data: {}
 
 networks:
   public:
@@ -140,6 +152,9 @@ configs:
   alert.rules.yml:
     name: alert.rules.yml_${STACK_VERSION:-0}
     file: prometheus/alert.rules.yml
+  perses.dashboard.yaml:
+    name: perses.dashboard.yaml_${STACK_VERSION:-0}
+    file: perses/dashboard.yaml
 
 secrets:
   telegram_bot_token:
