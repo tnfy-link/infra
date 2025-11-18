@@ -36,7 +36,7 @@
     display:
       name: tnfy.link
     panels:
-      "0_0":
+      general-goroutines:
         kind: Panel
         spec:
           display:
@@ -52,13 +52,13 @@
                   kind: PrometheusTimeSeriesQuery
                   spec:
                     minStep: ""
-                    query: go_goroutines
+                    query: go_goroutines{job="backend"}
                     seriesNameFormat: "{{job}}"
-      "0_1":
+      general-memory:
         kind: Panel
         spec:
           display:
-            name: Memory Usage (Allocated)
+            name: Memory Usage
             description: Memory allocated by the application in bytes
           plugin:
             kind: TimeSeriesChart
@@ -70,9 +70,17 @@
                   kind: PrometheusTimeSeriesQuery
                   spec:
                     minStep: ""
-                    query: go_memstats_alloc_bytes
-                    seriesNameFormat: "{{job}}"
-      "0_2":
+                    query: go_memstats_alloc_bytes{job="backend"}
+                    seriesNameFormat: "{{job}} - heap"
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: process_resident_memory_bytes{job="backend"}
+                    seriesNameFormat: "{{job}} - resident"
+          links: []
+      general-cpu:
         kind: Panel
         spec:
           display:
@@ -93,8 +101,135 @@
                   kind: PrometheusTimeSeriesQuery
                   spec:
                     minStep: ""
-                    query: rate(process_cpu_seconds_total[$__rate_interval])
+                    query: rate(process_cpu_seconds_total{job="backend"}[$__rate_interval])
                     seriesNameFormat: "{{job}}"
+      app-links-created:
+        kind: Panel
+        spec:
+          display:
+            name: Links Created
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: links_created_total{job="backend"}
+      app-redirects:
+        kind: Panel
+        spec:
+          display:
+            name: Redirects
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: stats_redirects_total{job="backend"}
+      app-errors:
+        kind: Panel
+        spec:
+          display:
+            name: Errors
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last-number
+              format:
+                unit: decimal
+              sparkline: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(links_errors_total{job="backend"})
+      app-http-request-duration:
+        kind: Panel
+        spec:
+          display:
+            name: HTTP Request Duration
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              yAxis:
+                show: true
+                label: ""
+                format:
+                  unit: seconds
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: histogram_quantile(0.95,
+                      sum(rate(http_request_duration_seconds_bucket{job="backend"}[$__rate_interval]))
+                      by (le, method, path, status_code))
+                    seriesNameFormat: "{{method}} {{path}} {{status_code}} 95th percentile"
+      app-http-request-rate:
+        kind: Panel
+        spec:
+          display:
+            name: HTTP Request Rate
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              yAxis:
+                show: true
+                label: ""
+                format:
+                  unit: requests/sec
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(rate(http_requests_total{job="backend"}[$__rate_interval])) by (method, path)
+                    seriesNameFormat: "{{method}} {{path}}"
+      app-http-error-rate:
+        kind: Panel
+        spec:
+          display:
+            name: HTTP Error Rate
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              yAxis:
+                show: true
+                label: ""
+                format:
+                  unit: requests/sec
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(rate(http_requests_total{job="backend",status_code=~"4.."}[$__rate_interval]))
+                    seriesNameFormat: Client errors
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(rate(http_requests_total{job="backend",status_code=~"5.."}[$__rate_interval]))
+                    seriesNameFormat: Server errors
     layouts:
       - kind: Grid
         spec:
@@ -108,19 +243,62 @@
               width: 8
               height: 8
               content:
-                $ref: "#/spec/panels/0_0"
-            - x: 8
-              "y": 0
-              width: 8
-              height: 8
-              content:
-                $ref: "#/spec/panels/0_1"
+                $ref: "#/spec/panels/general-goroutines"
             - x: 16
               "y": 0
               width: 8
               height: 8
               content:
-                $ref: "#/spec/panels/0_2"
+                $ref: "#/spec/panels/general-memory"
+            - x: 8
+              "y": 0
+              width: 8
+              height: 8
+              content:
+                $ref: "#/spec/panels/general-cpu"
+      - kind: Grid
+        spec:
+          display:
+            title: Application Health
+            collapse:
+              open: true
+          items:
+            - x: 0
+              "y": 0
+              width: 4
+              height: 8
+              content:
+                $ref: "#/spec/panels/app-links-created"
+            - x: 0
+              "y": 8
+              width: 4
+              height: 8
+              content:
+                $ref: "#/spec/panels/app-redirects"
+            - x: 0
+              "y": 16
+              width: 4
+              height: 8
+              content:
+                $ref: "#/spec/panels/app-errors"
+            - x: 4
+              "y": 8
+              width: 20
+              height: 8
+              content:
+                $ref: "#/spec/panels/app-http-request-duration"
+            - x: 4
+              "y": 0
+              width: 20
+              height: 8
+              content:
+                $ref: "#/spec/panels/app-http-request-rate"
+            - x: 4
+              "y": 16
+              width: 20
+              height: 8
+              content:
+                $ref: "#/spec/panels/app-http-error-rate"
     variables: []
     duration: 1d
     refreshInterval: 30s
