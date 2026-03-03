@@ -34,7 +34,6 @@ services:
         - "traefik.http.routers.prometheus.entrypoints=https"
         - "traefik.http.routers.prometheus.tls.certresolver=le"
         - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
-        - "traefik.http.middlewares.prometheus-ipallowlist.ipallowlist.ipStrategy.depth=1"
         - "traefik.http.middlewares.prometheus-ipallowlist.ipallowlist.sourcerange=${PROMETHEUS__IP_ALLOWLIST}"
         - "traefik.http.routers.prometheus.middlewares=prometheus-ipallowlist"
 
@@ -70,7 +69,6 @@ services:
         - "traefik.http.routers.alertmanager.entrypoints=https"
         - "traefik.http.routers.alertmanager.tls.certresolver=le"
         - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
-        - "traefik.http.middlewares.alertmanager-ipallowlist.ipallowlist.ipStrategy.depth=1"
         - "traefik.http.middlewares.alertmanager-ipallowlist.ipallowlist.sourcerange=${ALERTMANAGER__IP_ALLOWLIST}"
         - "traefik.http.routers.alertmanager.middlewares=alertmanager-ipallowlist"
 
